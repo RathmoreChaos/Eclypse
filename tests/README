@@ -1,0 +1,9 @@
+
+12/14/2024
+
+I don't really know what the current state of this directory is.  I believe
+I made it as a way of having a test suite that could be run against the
+code base in general.  It may be that some or none of these tests currently
+work.  I also may want to completely rethink how this is done in the
+future.  JKB
+
