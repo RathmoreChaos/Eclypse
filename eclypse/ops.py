@@ -334,6 +334,95 @@ class UniformCrossover(BaseOp):
 
 #############################################################################
 #
+# class NPointCrossover
+#
+#############################################################################
+class NPointCrossover(BaseOp):
+    """
+    Standard crossover operator with a parameterized number of cross points.
+    """
+    def __init__(self, provider, p_cross, num_points = 1, num_offspring = 2,
+                 xover_at_0 = False):
+        """
+        @param provider: The operator which immediately precedes this one in
+                         the pipeline.
+        @param p_cross: The probability that a pair of individuals will be
+                        recombined.  A value between 0 and 1.
+        @param num_points: The number of crossover points.  Default = 1.
+        @param num_offspring: The number of children that will be produced
+                          (1 or 2).  Default is 2.
+        @param xover_at_0: This allows crossover points to be selected right
+                           at the beginning of the string.  For 1 point
+                           crossover this would mean that no crossover occurs.
+                           When using more crossover points though, this can
+                           have a significant effect, reducing genetic drift.
+                           See De Jong, Evolutionary Computation: A Unified
+                           Approach, p. 145.
+        """
+        super().__init__(provider=provider)
+        self.p_cross = p_cross
+        self.num_points = num_points
+        self.num_offspring = num_offspring
+        self.xover_at_0 = xover_at_0
+
+
+    def pickCrossoverPoints(self, num_points, genomeSize):
+        """
+        Randomly choose (without replacement) crossover points.
+        """
+        min_xover_ind = int(not self.xover_at_0)
+        pp = list(range(min_xover_ind,genomeSize))
+        xpts = [pp.pop(random.randrange(len(pp))) for i in range(num_points)]
+        xpts.sort()
+        xpts = [0] + xpts + [genomeSize]  # Add start and end
+        return xpts
+
+
+    def recombine(self, ind1, ind2):
+        """
+        @param ind1: The first individual to be recombined.
+        @param ind2: The second individual to be recombined.
+        @return: (ind1, ind2)
+        """
+        # Check for errors.
+        assert(len(ind1.genome) == len(ind2.genome))
+        assert(len(ind1.genome) >= self.num_points + 1-int(self.xover_at_0))
+
+        genome1 = ind1.genome[0:0]  # empty sequence - maintain type
+        genome2 = ind2.genome[0:0]
+        src1 = random.randrange(2)
+        src2 = 1-src1
+        individuals = [ind1, ind2]
+
+        # Pick crossover points
+        xpts = self.pickCrossoverPoints(self.num_points, len(ind1.genome))
+
+        # Perform the crossover
+        for i in range(len(xpts)-1):  # swap odd segments
+            genome1 += individuals[src1].genome[xpts[i]:xpts[i+1]]
+            genome2 += individuals[src2].genome[xpts[i]:xpts[i+1]]
+            src1, src2 = src2, src1
+
+        ind1.genome = genome1
+        ind2.genome = genome2
+
+        return (ind1, ind2)
+
+    def generator(self):
+        while 1:
+            ind1 = self.provider.pull()
+            ind2 = self.provider.pull()
+            assert(len(ind1.genome) == len(ind2.genome))
+            if random.random() <= self.p_cross:
+                ind1, ind2 = self.recombine(ind1, ind2)
+
+            yield ind1
+            if self.num_offspring == 2:
+                yield ind2
+
+
+#############################################################################
+#
 # unit_test
 #
 #############################################################################
@@ -361,7 +450,8 @@ if __name__ == "__main__":
 
     pipeline = DeterministicSelection(shuffle=False)
     pipeline = Clone(pipeline)
-    pipeline = UniformCrossover(pipeline, p_cross=1.0, p_swap=0.5)
+    #pipeline = UniformCrossover(pipeline, p_cross=1.0, p_swap=0.5)
+    pipeline = NPointCrossover(pipeline, p_cross=1.0, num_points=2)
     pipeline = BitFlipMutation(pipeline, p_mut=1.0)
     pipeline = Evaluate(pipeline)
 

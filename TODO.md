@@ -5,7 +5,8 @@
 
 - [x] Change this TODO.md file into Markdown format
 - [x] Add eclypse/exec: Executable objects and Pitt approach stuff
-- [ ] Add operators.py: npoint_xover
+- [x] Add operators.py: npoint_xover
 - [ ] Add selection.py: fitness proportional
+- [ ] Make sure tests are functioning properly
 
 
